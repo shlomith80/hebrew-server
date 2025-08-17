@@ -8,20 +8,34 @@ const app = express();
 const upload = multer({ dest: "uploads/" });
 app.use(cors());
 
+
+if (!process.env.OPENAI_API_KEY) {
+  console.warn("⚠️  OPENAI_API_KEY is missing. Set it in Render → Environment.");
+}
+
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+app.get("/health", (req, res) => {
+  res.json({ ok: true, hasKey: !!process.env.OPENAI_API_KEY });
+});
 
 app.post("/transcribe", upload.single("audio"), async (req, res) => {
   try {
-    const file = fs.createReadStream(req.file.path);
+    if (!req.file) return res.status(400).json({ error: "no file" });
+
     const transcript = await client.audio.transcriptions.create({
-      file,
+      file: fs.createReadStream(req.file.path),
       model: "whisper-1",
     });
-    fs.unlink(req.file.path, () => {}); // מוחק את הקובץ הזמני אחרי השימוש
+
+    fs.unlink(req.file.path, () => {});
     res.json({ text: transcript.text });
   } catch (e) {
+    console.error(e);
     res.status(500).json({ error: String(e) });
   }
 });
 
-app.listen(3000, () => console.log("Server running on port 3000"));
+
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+app.listen(PORT, () => console.log(`✅ server listening on ${PORT}`));
