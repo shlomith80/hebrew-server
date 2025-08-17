@@ -30,12 +30,16 @@ app.post("/transcribe", upload.single("audio"), async (req, res) => {
 
     fs.unlink(req.file.path, () => {});
     res.json({ text: transcript.text });
+
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: String(e) });
+    console.error("OpenAI call failed:", e);
+    res.status(500).json({
+      error: e?.error?.message || e?.message || String(e),
+      code: e?.code,
+      type: e?.type
+    });
   }
 });
-
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 app.listen(PORT, () => console.log(`✅ server listening on ${PORT}`));
