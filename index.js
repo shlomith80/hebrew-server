@@ -4,7 +4,7 @@ import multer from "multer";
 import fs from "fs";
 import cors from "cors";
 import OpenAI from "openai";
-import path from "path";  
+import path from "path";
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
@@ -35,36 +35,37 @@ async function transcribeWithRetry(filePath, retries = 3) {
   }
 }
 
-
 app.get("/health", (req, res) => {
   res.json({ ok: true, hasKey: !!process.env.OPENAI_API_KEY });
 });
 
 app.post("/transcribe", upload.single("file"), async (req, res) => {
- if (!req.file) {
+  if (!req.file) {
     return res.status(400).json({ error: "Missing file field 'file'" });
   }
 
-  // קח את הסיומת מהשם המקורי (למשל ".mp3")
   const ext = path.extname(req.file.originalname || "");
   const srcPath = req.file.path;
   const pathWithExt = ext ? `${srcPath}${ext}` : srcPath;
 
   try {
-    // אם יש סיומת – שנה את שם הקובץ הזמני כך שתכלול אותה
     if (ext) {
       fs.renameSync(srcPath, pathWithExt);
     }
 
     const transcript = await transcribeWithRetry(pathWithExt);
 
-    // ניקוי קובץ זמני
     fs.unlink(pathWithExt, () => {});
     res.json({ text: transcript.text });
   } catch (err) {
     console.error("❌ OpenAI call failed:", err);
-    // ניקוי גם במקרה שגיאה
     try { fs.unlinkSync(pathWithExt); } catch {}
     res.status(502).json({ error: "OpenAI connection failed", detail: String(err) });
   }
+});
+
+// ✅ זה מה שהיה חסר – להאזין לפורט שה־Render נותן
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
 });
