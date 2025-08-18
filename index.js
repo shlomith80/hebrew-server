@@ -4,6 +4,7 @@ import multer from "multer";
 import fs from "fs";
 import cors from "cors";
 import OpenAI from "openai";
+import path from "path";  
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
