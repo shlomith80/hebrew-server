@@ -11,7 +11,7 @@ const upload = multer({ dest: "uploads/" });
 app.use(cors());
 
 if (!process.env.OPENAI_API_KEY) {
-  console.error("❌ OPENAI_API_KEY is missing");
+  console.error("OPENAI_API_KEY is missing");
 }
 
 const client = new OpenAI({
@@ -19,13 +19,14 @@ const client = new OpenAI({
   defaultHeaders: { "User-Agent": "hebrew-transcriber/1.0" },
 });
 
-// פונקציית עזר עם retries במקרה של ECONNRESET
+
 async function transcribeWithRetry(filePath, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
       return await client.audio.transcriptions.create({
         file: fs.createReadStream(filePath),
         model: "whisper-1",
+        language: "he", 
       });
     } catch (err) {
       console.error(`⚠️ ניסיון ${i + 1} נכשל:`, err.message);
@@ -58,13 +59,13 @@ app.post("/transcribe", upload.single("file"), async (req, res) => {
     fs.unlink(pathWithExt, () => {});
     res.json({ text: transcript.text });
   } catch (err) {
-    console.error("❌ OpenAI call failed:", err);
+    console.error("OpenAI call failed:", err);
     try { fs.unlinkSync(pathWithExt); } catch {}
     res.status(502).json({ error: "OpenAI connection failed", detail: String(err) });
   }
 });
 
-// ✅ זה מה שהיה חסר – להאזין לפורט שה־Render נותן
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
